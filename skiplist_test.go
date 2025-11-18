@@ -2,6 +2,10 @@ package main
 
 import "testing"
 
+// ------------------------------------------------------------
+// Helper functions
+// ------------------------------------------------------------
+
 func createSkipList() *SkipList {
 	first := &Node{val: MinInt, forward: make([]*Node, MAX_LEVEL_CAP + 1)}
 	last := &Node{val: MaxInt, forward: make([]*Node, 0)}
@@ -110,6 +114,10 @@ func findMultiLevelNode(sl *SkipList) *Node {
 	}
 	return nil
 }
+
+// ------------------------------------------------------------
+// Add Test cases
+// ------------------------------------------------------------
 
 func TestAddInit(t *testing.T) {
 	skipList := createSkipList()
@@ -271,6 +279,10 @@ func TestForwardPointersMonotonic(t *testing.T) {
     }
 }
 
+// ------------------------------------------------------------
+// Delete Test cases
+// ------------------------------------------------------------
+
 func TestDelete(t *testing.T) {
 	skipList := createSkipList()
 	itemsToAdd := []int{10, 5, 53, 32}
@@ -418,3 +430,55 @@ func TestDeleteMultiLevelNodePreservesLevels(t *testing.T) {
 		}
 	}
 }
+
+// ------------------------------------------------------------
+// Search Test cases
+// ------------------------------------------------------------
+
+func TestSearch(t *testing.T) {
+	skipList := createSkipList()
+	itemsToAdd := []int{10, 5, 53, 32}
+	for _, item := range itemsToAdd {
+		skipList.Add(item)
+	}
+
+	for _, item := range itemsToAdd {	
+		found := skipList.Search(item)
+		if !found {
+			t.Fatalf("item %d not found in skip list", item)
+		}
+	}
+}
+
+func TestSearchAbsentElement(t *testing.T) {
+	skipList := createSkipList()
+	itemsToAdd := []int{10, 5, 53, 32}
+	for _, item := range itemsToAdd {
+		skipList.Add(item)
+	}
+
+	found := skipList.Search(100)
+	if found {
+		t.Fatalf("item 100 found in skip list but should not be present")
+	}
+
+	found = skipList.Search(0)
+	if found {
+		t.Fatalf("item 0 found in skip list but should not be present")
+	}
+}
+
+func TestSearchSentinelElements(t *testing.T) {
+	skipList := createSkipList()
+
+	found := skipList.Search(MinInt)
+	if found {
+		t.Fatalf("item %d found in skip list but should not be present", MinInt)
+	}
+
+	found = skipList.Search(MaxInt)
+	if found {
+		t.Fatalf("item %d found in skip list but should not be present", MaxInt)
+	}
+}
+
