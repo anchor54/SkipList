@@ -45,6 +45,72 @@ func assertOrder(t *testing.T, sl *SkipList, expected []int) {
     }
 }
 
+func assertPanic(t *testing.T, f func()) {
+    defer func() {
+        if r := recover(); r == nil {
+            t.Errorf("The code did not panic")
+        }
+    }()
+    f()
+}
+
+// Collect all internal values for each level (excluding head/tail).
+func collectLevelValues(sl *SkipList) [][]int {
+	levels := make([][]int, sl.maxLevel+1)
+	for level := 0; level <= sl.maxLevel; level++ {
+		for curr := sl.head.forward[level]; curr != nil && curr != sl.tail; curr = curr.forward[level] {
+			levels[level] = append(levels[level], curr.val)
+		}
+	}
+	return levels
+}
+
+func assertStrictlyIncreasing(t *testing.T, vals []int, level int) {
+	t.Helper()
+	for i := 1; i < len(vals); i++ {
+		if vals[i] <= vals[i-1] {
+			t.Fatalf("values not strictly increasing at level %d index %d: %d followed by %d",
+				level, i-1, vals[i-1], vals[i])
+		}
+	}
+}
+
+func slicesEqual(a, b []int) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// removeOne removes a single occurrence of target from vals (if present).
+func removeOne(vals []int, target int) ([]int, bool) {
+	out := make([]int, 0, len(vals))
+	removed := false
+	for _, v := range vals {
+		if v == target && !removed {
+			removed = true
+			continue
+		}
+		out = append(out, v)
+	}
+	return out, removed
+}
+
+// Find a node that appears at more than one level (height > 0).
+func findMultiLevelNode(sl *SkipList) *Node {
+	for curr := sl.head.forward[0]; curr != nil && curr != sl.tail; curr = curr.forward[0] {
+		if len(curr.forward) > 1 {
+			return curr
+		}
+	}
+	return nil
+}
+
 func TestAddInit(t *testing.T) {
 	skipList := createSkipList()
 	
@@ -203,4 +269,152 @@ func TestForwardPointersMonotonic(t *testing.T) {
             }
         }
     }
+}
+
+func TestDelete(t *testing.T) {
+	skipList := createSkipList()
+	itemsToAdd := []int{10, 5, 53, 32}
+	itemsToVerify := []int{MinInt, 5, 32, 53, MaxInt}
+
+	for _, item := range(itemsToAdd) {
+		skipList.Add(item)
+	}
+
+	skipList.Delete(10)
+
+	assertOrder(t, skipList, itemsToVerify)
+}
+
+func TestDeleteAbsentElement(t *testing.T) {
+	skipList := createSkipList()
+	itemsToAdd := []int{10, 5, 53, 32}
+	itemsToVerify := []int{MinInt, 5, 10, 32, 53, MaxInt}
+
+	for _, item := range(itemsToAdd) {
+		skipList.Add(item)
+	}
+
+	skipList.Delete(100)
+
+	assertOrder(t, skipList, itemsToVerify)
+}
+
+func TestDeleteFirstOrLastElement(t *testing.T) {
+	skipList := createSkipList()
+	itemsToAdd := []int{10, 5, 53, 32}
+
+	for _, item := range(itemsToAdd) {
+		skipList.Add(item)
+	}
+
+	assertPanic(t, func() {
+		skipList.Delete(MinInt)
+	})
+
+	assertPanic(t, func() {
+		skipList.Delete(MaxInt)
+	})
+}
+
+func TestDeleteSingleElementList(t *testing.T) {
+	skipList := createSkipList()
+	skipList.Add(42)
+
+	skipList.Delete(42)
+
+	expected := []int{MinInt, MaxInt}
+	assertOrder(t, skipList, expected)
+}
+
+func TestDeleteMultipleElements(t *testing.T) {
+	skipList := createSkipList()
+	itemsToAdd := []int{10, 5, 53, 32, 7}
+	for _, item := range itemsToAdd {
+		skipList.Add(item)
+	}
+
+	// delete a couple of elements in the middle
+	skipList.Delete(5)
+	skipList.Delete(32)
+
+	expected := []int{MinInt, 7, 10, 53, MaxInt}
+	assertOrder(t, skipList, expected)
+}
+
+func TestDeleteSameElementTwice(t *testing.T) {
+	skipList := createSkipList()
+	itemsToAdd := []int{10, 5, 53, 32}
+	for _, item := range itemsToAdd {
+		skipList.Add(item)
+	}
+
+	skipList.Delete(10)
+	// second delete should be a no-op
+	skipList.Delete(10)
+
+	expected := []int{MinInt, 5, 32, 53, MaxInt}
+	assertOrder(t, skipList, expected)
+}
+
+func TestDeleteAllElements(t *testing.T) {
+	skipList := createSkipList()
+	itemsToAdd := []int{10, 5, 53, 32}
+	for _, item := range itemsToAdd {
+		skipList.Add(item)
+	}
+
+	for _, item := range itemsToAdd {
+		skipList.Delete(item)
+	}
+
+	expected := []int{MinInt, MaxInt}
+	assertOrder(t, skipList, expected)
+}
+
+func TestDeleteMultiLevelNodePreservesLevels(t *testing.T) {
+	skipList := createSkipList()
+
+	// Insert enough elements to very likely get multi-level nodes.
+	for i := 1; i <= 200; i++ {
+		skipList.Add(i)
+	}
+
+	// Choose a node that we know has > 1 level.
+	node := findMultiLevelNode(skipList)
+	if node == nil {
+		t.Fatalf("no node with level > 0 found; randomLevel may have produced only level 0 nodes, please rerun the test")
+	}
+	deleteVal := node.val
+
+	// Snapshot of all levels before deletion.
+	beforeLevels := collectLevelValues(skipList)
+
+	// Delete the chosen multi-level node.
+	skipList.Delete(deleteVal)
+
+	// Snapshot of all levels after deletion.
+	afterLevels := collectLevelValues(skipList)
+
+	// For each level: ordering valid, and only deleteVal removed.
+	for level := 0; level <= skipList.maxLevel; level++ {
+		before := beforeLevels[level]
+		after := afterLevels[level]
+
+		assertStrictlyIncreasing(t, before, level)
+		assertStrictlyIncreasing(t, after, level)
+
+		expectedAfter, removed := removeOne(before, deleteVal)
+		if !removed {
+			// Node was not present at this level; the level should be unchanged.
+			if !slicesEqual(before, after) {
+				t.Fatalf("level %d changed even though node %d was not present at this level", level, deleteVal)
+			}
+		} else {
+			// Node was present; level should be identical except for that single removal.
+			if !slicesEqual(expectedAfter, after) {
+				t.Fatalf("level %d sequence incorrect after deleting %d; expected %v, got %v",
+					level, deleteVal, expectedAfter, after)
+			}
+		}
+	}
 }

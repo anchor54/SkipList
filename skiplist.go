@@ -85,3 +85,25 @@ func (sl *SkipList) Add(val int) {
 		heirarchy[i].forward[i] = &newNode
 	}
 }
+
+func (sl *SkipList) Delete(val int) {
+	if val == sl.head.val {
+		panic("Invalid operation: Cannot delete head of list")
+	}
+	if val == sl.tail.val {
+		panic("Invalid operation: Cannot delete tail of list")
+	}
+	curr := sl.head
+
+	for currLevel := sl.maxLevel; currLevel >= 0; currLevel-- {
+		for curr.forward[currLevel].val < val {
+			curr = curr.forward[currLevel]
+		}
+		
+		nodeToDelete := curr.forward[currLevel]
+		if nodeToDelete.val == val {
+			curr.forward[currLevel] = nodeToDelete.forward[currLevel]
+			nodeToDelete.forward[currLevel] = nil
+		}
+	}
+}
