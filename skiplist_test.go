@@ -443,8 +443,7 @@ func TestSearch(t *testing.T) {
 	}
 
 	for _, item := range itemsToAdd {	
-		found := skipList.Search(item)
-		if !found {
+		if !skipList.Search(item) {
 			t.Fatalf("item %d not found in skip list", item)
 		}
 	}
@@ -457,13 +456,19 @@ func TestSearchAbsentElement(t *testing.T) {
 		skipList.Add(item)
 	}
 
-	found := skipList.Search(100)
-	if found {
+	if skipList.Search(100) {
 		t.Fatalf("item 100 found in skip list but should not be present")
 	}
 
-	found = skipList.Search(0)
-	if found {
+	if skipList.Search(0) {
+		t.Fatalf("item 0 found in skip list but should not be present")
+	}
+
+	if skipList.Search(3) {
+		t.Fatalf("item 0 found in skip list but should not be present")
+	}
+
+	if skipList.Search(33) {
 		t.Fatalf("item 0 found in skip list but should not be present")
 	}
 }
@@ -471,14 +476,24 @@ func TestSearchAbsentElement(t *testing.T) {
 func TestSearchSentinelElements(t *testing.T) {
 	skipList := createSkipList()
 
-	found := skipList.Search(MinInt)
-	if found {
+	if skipList.Search(MinInt) {
 		t.Fatalf("item %d found in skip list but should not be present", MinInt)
 	}
 
-	found = skipList.Search(MaxInt)
-	if found {
+	if skipList.Search(MaxInt) {
 		t.Fatalf("item %d found in skip list but should not be present", MaxInt)
 	}
 }
 
+func TestDeleteAndSearch(t *testing.T) {
+	skipList := createSkipList()
+	itemsToAdd := []int{10, 5, 53, 32}
+	for _, item := range itemsToAdd {
+		skipList.Add(item)
+	}
+
+	skipList.Delete(53)
+	if skipList.Search(53) {
+		t.Fatalf("item %d found in skip list but should not be present", MaxInt)
+	}
+}
