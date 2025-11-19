@@ -26,6 +26,7 @@ type SkipList struct {
 	head     *Node
 	tail     *Node
 	maxLevel int
+	length   int
 }
 
 func NewNode(val int, forwards int) *Node {
@@ -49,6 +50,7 @@ func NewSkipList() *SkipList {
 		head:     first,
 		tail:     last,
 		maxLevel: 0,
+		length:   0,
 	}
 }
 
@@ -110,6 +112,8 @@ func (sl *SkipList) InsertAtLevel(val int, lvl int) {
 	for i := sl.maxLevel + 1; i <= MAX_LEVEL_CAP; i++ {
 		sl.head.skips[i]++
 	}
+
+	sl.length++
 }
 
 func (sl *SkipList) Delete(val int) {
@@ -150,9 +154,11 @@ func (sl *SkipList) Delete(val int) {
 	for ; currLevel <= MAX_LEVEL_CAP; currLevel++ {
 		sl.head.skips[currLevel]--
 	}
+
+	sl.length--
 }
 
-func (sl *SkipList) Search(val int) (*Node, bool) {
+func (sl *SkipList) SearchByValue(val int) (*Node, bool) {
 	if val <= sl.head.val || val >= sl.tail.val {
 		return nil, false
 	}
@@ -165,6 +171,27 @@ func (sl *SkipList) Search(val int) (*Node, bool) {
 		}
 
 		if curr.val == val {
+			return curr, true
+		}
+	}
+	return nil, false
+}
+
+func (sl *SkipList) SearchByRank(rank int) (*Node, bool) {
+	if rank < 1 || rank > sl.length {
+		return nil, false
+	}
+
+	curr := sl.head
+	rankUntil := 0
+
+	for currLevel := sl.maxLevel; currLevel >= 0; currLevel-- {
+		for rankUntil + curr.skips[currLevel] <= rank {
+			rankUntil += curr.skips[currLevel]
+			curr = curr.forward[currLevel]
+		}
+
+		if rankUntil == rank {
 			return curr, true
 		}
 	}
