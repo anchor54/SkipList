@@ -1,9 +1,11 @@
 package main
 
-import "math/rand"
+import (
+	"math/rand"
+)
 
-var MAX_LEVEL_CAP = 16
-var PROBABILILTY float32 = 0.5
+const MAX_LEVEL_CAP = 16
+const PROBABILILTY float32 = 0.5
 
 // Source - https://stackoverflow.com/a
 // Posted by nmichaels, modified by community. See post 'Timeline' for change history
@@ -16,6 +18,7 @@ const MinInt = -MaxInt - 1
 
 type Node struct {
 	val     int
+	skips   []int
 	forward []*Node
 }
 
@@ -25,12 +28,21 @@ type SkipList struct {
 	maxLevel int
 }
 
+func NewNode(val int, forwards int) *Node {
+	return &Node{
+		val:     val,
+		forward: make([]*Node, forwards),
+		skips:   make([]int, forwards),
+	}
+}
+
 func NewSkipList() *SkipList {
-	first := &Node{val: MinInt, forward: make([]*Node, MAX_LEVEL_CAP+1)}
-	last := &Node{val: MaxInt, forward: make([]*Node, 0)}
+	first := NewNode(MinInt, MAX_LEVEL_CAP+1)
+	last := NewNode(MaxInt, 0)
 
 	for i := 0; i <= MAX_LEVEL_CAP; i++ {
 		first.forward[i] = last
+		first.skips[i] = 1
 	}
 
 	return &SkipList{
@@ -49,11 +61,18 @@ func randomLevel() int {
 }
 
 func (sl *SkipList) Add(val int) {
-	heirarchy := make([]*Node, MAX_LEVEL_CAP+1)
+	sl.InsertAtLevel(val, randomLevel())
+}
+
+func (sl *SkipList) InsertAtLevel(val int, lvl int) {
+	heirarchy := [MAX_LEVEL_CAP + 1]*Node{}
+	rank := [MAX_LEVEL_CAP + 1]int{}
 	curr := sl.head
+	skipped := 0
 
 	for currLevel := sl.maxLevel; currLevel >= 0; currLevel-- {
 		for curr.forward[currLevel].val <= val {
+			skipped += curr.skips[currLevel]
 			curr = curr.forward[currLevel]
 		}
 
@@ -63,26 +82,33 @@ func (sl *SkipList) Add(val int) {
 		}
 
 		heirarchy[currLevel] = curr
+		rank[currLevel] = skipped
 	}
-
-	lvl := randomLevel()
 
 	if lvl > sl.maxLevel {
 		for i := sl.maxLevel + 1; i <= lvl; i++ {
 			heirarchy[i] = sl.head
+			rank[i] = 0
 		}
 
 		sl.maxLevel = lvl
 	}
 
-	newNode := Node{
-		val:     val,
-		forward: make([]*Node, lvl+1),
-	}
+	newNode := NewNode(val, lvl+1)
 
 	for i := 0; i <= lvl; i++ {
 		newNode.forward[i] = heirarchy[i].forward[i]
-		heirarchy[i].forward[i] = &newNode
+		heirarchy[i].forward[i] = newNode
+
+		newNode.skips[i] = rank[i] + heirarchy[i].skips[i] - skipped
+		heirarchy[i].skips[i] = skipped - rank[i] + 1
+	}
+
+	for i := lvl + 1; i <= sl.maxLevel; i++ {
+		heirarchy[i].skips[i]++
+	}
+	for i := sl.maxLevel + 1; i <= MAX_LEVEL_CAP; i++ {
+		sl.head.skips[i]++
 	}
 }
 
