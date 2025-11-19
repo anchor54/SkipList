@@ -119,18 +119,36 @@ func (sl *SkipList) Delete(val int) {
 	if val == sl.tail.val {
 		panic("Invalid operation: Cannot delete tail of list")
 	}
+	heirarchy := [MAX_LEVEL_CAP + 1]*Node{}
 	curr := sl.head
+	var nodeToDelete *Node = nil
 
 	for currLevel := sl.maxLevel; currLevel >= 0; currLevel-- {
 		for curr.forward[currLevel].val < val {
 			curr = curr.forward[currLevel]
 		}
 
-		nodeToDelete := curr.forward[currLevel]
+		nodeToDelete = curr.forward[currLevel]
 		if nodeToDelete.val == val {
+			curr.skips[currLevel] += nodeToDelete.skips[currLevel] - 1
 			curr.forward[currLevel] = nodeToDelete.forward[currLevel]
 			nodeToDelete.forward[currLevel] = nil
+		} else {
+			heirarchy[currLevel] = curr
 		}
+	}
+
+	// if the node to delete was found only then reduce the span of the remaining heirarchy
+	if nodeToDelete == nil {
+		return
+	}
+
+	currLevel := len(nodeToDelete.skips)
+	for ; currLevel <= sl.maxLevel; currLevel++ {
+		heirarchy[currLevel].skips[currLevel]--
+	}
+	for ; currLevel <= MAX_LEVEL_CAP; currLevel++ {
+		sl.head.skips[currLevel]--
 	}
 }
 
