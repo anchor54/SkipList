@@ -438,14 +438,30 @@ func TestDeleteMultiLevelNodePreservesLevels(t *testing.T) {
 func TestSearch(t *testing.T) {
 	skipList := createSkipList()
 	itemsToAdd := []int{10, 5, 53, 32}
+	itemsToVerify := []int{5, 10, 32, 53}
 	for _, item := range itemsToAdd {
 		skipList.Add(item)
 	}
 
-	for _, item := range itemsToAdd {	
-		if !skipList.Search(item) {
+	for len(itemsToVerify) > 0 {
+		item := itemsToVerify[0]
+		if node, present := skipList.Search(item); present {
+			for i := 0; i < len(itemsToVerify); i++ {
+				if node == nil {
+					t.Fatalf("list ended at %d", itemsToVerify[i])
+				}
+				if node.val != itemsToVerify[i] {
+					t.Fatalf("item %d not present in skip list at correct position", itemsToVerify[i])
+				}
+				if len(node.forward) == 0 {
+					t.Fatal("node reached end!")
+				}
+				node = node.forward[0]
+			}
+		} else {
 			t.Fatalf("item %d not found in skip list", item)
 		}
+		itemsToVerify = itemsToVerify[1:]
 	}
 }
 
@@ -456,19 +472,19 @@ func TestSearchAbsentElement(t *testing.T) {
 		skipList.Add(item)
 	}
 
-	if skipList.Search(100) {
+	if _, present := skipList.Search(100); present {
 		t.Fatalf("item 100 found in skip list but should not be present")
 	}
 
-	if skipList.Search(0) {
+	if _, present := skipList.Search(0); present {
 		t.Fatalf("item 0 found in skip list but should not be present")
 	}
 
-	if skipList.Search(3) {
+	if _, present := skipList.Search(3); present {
 		t.Fatalf("item 0 found in skip list but should not be present")
 	}
 
-	if skipList.Search(33) {
+	if _, present := skipList.Search(33); present {
 		t.Fatalf("item 0 found in skip list but should not be present")
 	}
 }
@@ -476,11 +492,11 @@ func TestSearchAbsentElement(t *testing.T) {
 func TestSearchSentinelElements(t *testing.T) {
 	skipList := createSkipList()
 
-	if skipList.Search(MinInt) {
+	if _, present := skipList.Search(MinInt); present {
 		t.Fatalf("item %d found in skip list but should not be present", MinInt)
 	}
 
-	if skipList.Search(MaxInt) {
+	if _, present := skipList.Search(MaxInt); present {
 		t.Fatalf("item %d found in skip list but should not be present", MaxInt)
 	}
 }
@@ -493,7 +509,8 @@ func TestDeleteAndSearch(t *testing.T) {
 	}
 
 	skipList.Delete(53)
-	if skipList.Search(53) {
+	if _, present := skipList.Search(53); present {
 		t.Fatalf("item %d found in skip list but should not be present", MaxInt)
 	}
 }
+

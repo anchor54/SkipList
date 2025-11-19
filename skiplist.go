@@ -108,9 +108,9 @@ func (sl *SkipList) Delete(val int) {
 	}
 }
 
-func (sl *SkipList) Search(val int) bool {
+func (sl *SkipList) Search(val int) (*Node, bool) {
 	if val <= sl.head.val || val >= sl.tail.val {
-		return false
+		return nil, false
 	}
 
 	curr := sl.head
@@ -121,8 +121,8 @@ func (sl *SkipList) Search(val int) bool {
 		}
 
 		if curr.val == val {
-			return true
+			return curr, true
 		}
 	}
-	return false
+	return nil, false
 }
