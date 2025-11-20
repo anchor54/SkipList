@@ -1,3 +1,3 @@
 module github.com/anchor54/SkipList
 
-go 1.24.0
+go 1.24

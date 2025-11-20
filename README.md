@@ -1,6 +1,6 @@
 # Skip List - A Generic Probabilistic Data Structure in Go
 
-[![Go Version](https://img.shields.io/badge/go-%3E%3D1.25-blue.svg)](https://golang.org/)
+[![Go Version](https://img.shields.io/badge/go-%3E%3D1.24-blue.svg)](https://golang.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 A high-performance, generic skip list implementation in Go with support for custom comparators, rank-based queries, and comprehensive testing.
@@ -291,7 +291,7 @@ go test -bench=. -benchmem -benchtime=5s
 go test -bench=. -benchmem -run=^$
 ```
 
-**Actual benchmark results** (AMD Ryzen 7 5800H, Go 1.25):
+**Actual benchmark results** (AMD Ryzen 7 5800H, Go 1.24):
 
 ```
 BenchmarkAdd-16                 3537198    449.8 ns/op    96 B/op    3 allocs/op
