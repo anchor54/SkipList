@@ -6,7 +6,7 @@ import "testing"
 // Helper functions
 // ------------------------------------------------------------
 
-func assertOrder(t *testing.T, sl *SkipList, expected []int) {
+func assertOrder(t *testing.T, sl *SkipList[int], expected []int) {
 	t.Helper()	
 	
 	i := 0
@@ -36,7 +36,7 @@ func assertPanic(t *testing.T, f func()) {
 }
 
 // Collect all internal values for each level (excluding head/tail).
-func collectLevelValues(sl *SkipList) [][]int {
+func collectLevelValues(sl *SkipList[int]) [][]int {
 	levels := make([][]int, sl.maxLevel+1)
 	for level := 0; level <= sl.maxLevel; level++ {
 		for curr := sl.head.forward[level]; curr != nil && curr != sl.tail; curr = curr.forward[level] {
@@ -83,7 +83,7 @@ func removeOne(vals []int, target int) ([]int, bool) {
 }
 
 // Find a node that appears at more than one level (height > 0).
-func findMultiLevelNode(sl *SkipList) *Node {
+func findMultiLevelNode(sl *SkipList[int]) *Node[int] {
 	for curr := sl.head.forward[0]; curr != nil && curr != sl.tail; curr = curr.forward[0] {
 		if len(curr.forward) > 1 {
 			return curr
@@ -93,7 +93,7 @@ func findMultiLevelNode(sl *SkipList) *Node {
 }
 
 // findNode returns the node with value v (or nil).
-func findNode(s *SkipList, v int) *Node {
+func findNode(s *SkipList[int], v int) *Node[int] {
 	for n := s.head; n != nil; {
 		// traverse level 0 list
 		if len(n.forward) == 0 {
@@ -115,7 +115,7 @@ func findNode(s *SkipList, v int) *Node {
 
 // checkSpans asserts that the found node for value `v` has expected spans across all levels.
 // expectedSpans must be of length == levelCount for the node (or test will fail).
-func checkSpans(t *testing.T, s *SkipList, v int, expectedSpans []int) {
+func checkSpans(t *testing.T, s *SkipList[int], v int, expectedSpans []int) {
 	t.Helper()
 	n := findNode(s, v)
 	if n == nil {
@@ -137,7 +137,7 @@ func checkSpans(t *testing.T, s *SkipList, v int, expectedSpans []int) {
 // ------------------------------------------------------------
 
 func TestAddInit(t *testing.T) {
-	skipList := NewSkipList()
+	skipList := NewSkipList[int]()
 
 	if skipList.head == nil {
 		t.Error("Skiplist's head cannot be nil")
@@ -150,7 +150,7 @@ func TestAddInit(t *testing.T) {
 
 func TestAdd(t *testing.T) {
 	// 1. setup
-	skipList := NewSkipList()
+	skipList := NewSkipList[int]()
 	itemsToAdd := []int{10, 5, 53, 32}
 	itemsToVerify := []int{5, 10, 32, 53}
 	// 2. action
@@ -165,7 +165,7 @@ func TestAdd(t *testing.T) {
 // Adding a duplicate item should not increase the count of elements
 func TestAddDuplicate(t *testing.T) {
 	// 1. setup
-	skipList := NewSkipList()
+	skipList := NewSkipList[int]()
 	itemsToAdd := []int{10, 5, 53, 32}
 	itemsToVerify := []int{5, 10, 32, 53}
 	// 2. action
@@ -181,7 +181,7 @@ func TestAddDuplicate(t *testing.T) {
 }
 
 func TestAddWithNegativeAndZero(t *testing.T) {
-	sl := NewSkipList()
+	sl := NewSkipList[int]()
 	toAdd := []int{0, -10, 15, -1, 7}
 	expected := []int{-10, -1, 0, 7, 15}
 
@@ -193,7 +193,7 @@ func TestAddWithNegativeAndZero(t *testing.T) {
 }
 
 func TestAddAscendingInput(t *testing.T) {
-	sl := NewSkipList()
+	sl := NewSkipList[int]()
 	toAdd := []int{1, 2, 3, 4, 5}
 	expected := []int{1, 2, 3, 4, 5}
 
@@ -205,7 +205,7 @@ func TestAddAscendingInput(t *testing.T) {
 }
 
 func TestAddDescendingInput(t *testing.T) {
-	sl := NewSkipList()
+	sl := NewSkipList[int]()
 	toAdd := []int{5, 4, 3, 2, 1}
 	expected := []int{1, 2, 3, 4, 5}
 
@@ -217,7 +217,7 @@ func TestAddDescendingInput(t *testing.T) {
 }
 
 func TestAddMultipleDuplicates(t *testing.T) {
-	sl := NewSkipList()
+	sl := NewSkipList[int]()
 	toAdd := []int{10, 10, 10, 10}
 	expected := []int{10}
 
@@ -229,7 +229,7 @@ func TestAddMultipleDuplicates(t *testing.T) {
 }
 
 func TestMaxLevelAndNodeLevels(t *testing.T) {
-	sl := NewSkipList()
+	sl := NewSkipList[int]()
 
 	// Add a bunch of elements to exercise randomLevel
 	for i := range 1000 {
@@ -263,7 +263,7 @@ func TestMaxLevelAndNodeLevels(t *testing.T) {
 }
 
 func TestForwardPointersMonotonic(t *testing.T) {
-	sl := NewSkipList()
+	sl := NewSkipList[int]()
 
 	vals := []int{10, 5, 53, 32, 7, 1, 100}
 	for _, v := range vals {
@@ -283,7 +283,7 @@ func TestForwardPointersMonotonic(t *testing.T) {
 // ---------- Tests: deterministic InsertWithLevel (recommended) ----------
 
 func TestSpans_AfterDeterministicInsert_Simple(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 	s.InsertAtLevel(1, 1) // level 1
 	s.InsertAtLevel(2, 2) // level 2
 	s.InsertAtLevel(3, 1) // level 1
@@ -297,7 +297,7 @@ func TestSpans_AfterDeterministicInsert_Simple(t *testing.T) {
 
 func TestSpans_MultiLevelInsert_Positioning(t *testing.T) {
 	// Build a slightly bigger deterministic list and assert spans for a middle node.
-	s := NewSkipList()
+	s := NewSkipList[int]()
 
 	levels := map[int]int{
 		1: 1,
@@ -321,7 +321,7 @@ func TestSpans_MultiLevelInsert_Positioning(t *testing.T) {
 
 // TestInsertAtLevel_Level0 tests inserting at level 0 (lowest level)
 func TestInsertAtLevel_Level0(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 	s.InsertAtLevel(5, 0)
 	s.InsertAtLevel(10, 0)
 	s.InsertAtLevel(7, 0)
@@ -343,7 +343,7 @@ func TestInsertAtLevel_Level0(t *testing.T) {
 
 // TestInsertAtLevel_MaxLevelUpdate tests that maxLevel is updated when inserting at higher levels
 func TestInsertAtLevel_MaxLevelUpdate(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 
 	// Insert at level 0, maxLevel should be 0
 	s.InsertAtLevel(1, 0)
@@ -372,7 +372,7 @@ func TestInsertAtLevel_MaxLevelUpdate(t *testing.T) {
 
 // TestInsertAtLevel_MaxLevelCap tests inserting at MAX_LEVEL_CAP
 func TestInsertAtLevel_MaxLevelCap(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 	s.InsertAtLevel(42, MAX_LEVEL_CAP)
 
 	if s.maxLevel != MAX_LEVEL_CAP {
@@ -390,7 +390,7 @@ func TestInsertAtLevel_MaxLevelCap(t *testing.T) {
 
 // TestInsertAtLevel_DuplicateValue tests that duplicate values are ignored
 func TestInsertAtLevel_DuplicateValue(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 	s.InsertAtLevel(10, 2)
 	s.InsertAtLevel(20, 1)
 	s.InsertAtLevel(30, 3)
@@ -421,7 +421,7 @@ func TestInsertAtLevel_DuplicateValue(t *testing.T) {
 
 // TestInsertAtLevel_ForwardPointers tests that forward pointers are correctly set at all levels
 func TestInsertAtLevel_ForwardPointers(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 	s.InsertAtLevel(10, 2)
 	s.InsertAtLevel(20, 1)
 	s.InsertAtLevel(30, 3)
@@ -458,7 +458,7 @@ func TestInsertAtLevel_ForwardPointers(t *testing.T) {
 
 // TestInsertAtLevel_ForwardPointersCorrectness tests forward pointer correctness
 func TestInsertAtLevel_ForwardPointersCorrectness(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 	s.InsertAtLevel(10, 2)
 	s.InsertAtLevel(20, 1)
 	s.InsertAtLevel(30, 3)
@@ -487,7 +487,7 @@ func TestInsertAtLevel_ForwardPointersCorrectness(t *testing.T) {
 
 // TestInsertAtLevel_InsertAtBeginning tests inserting at the beginning of the list
 func TestInsertAtLevel_InsertAtBeginning(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 	s.InsertAtLevel(100, 1)
 	s.InsertAtLevel(50, 2)
 	s.InsertAtLevel(10, 0)
@@ -509,7 +509,7 @@ func TestInsertAtLevel_InsertAtBeginning(t *testing.T) {
 
 // TestInsertAtLevel_InsertAtEnd tests inserting at the end of the list
 func TestInsertAtLevel_InsertAtEnd(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 	s.InsertAtLevel(10, 1)
 	s.InsertAtLevel(50, 2)
 	s.InsertAtLevel(100, 0)
@@ -530,7 +530,7 @@ func TestInsertAtLevel_InsertAtEnd(t *testing.T) {
 
 // TestInsertAtLevel_InsertInMiddle tests inserting in the middle
 func TestInsertAtLevel_InsertInMiddle(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 	s.InsertAtLevel(10, 2)
 	s.InsertAtLevel(50, 2)
 	s.InsertAtLevel(30, 1) // Insert in middle
@@ -551,7 +551,7 @@ func TestInsertAtLevel_InsertInMiddle(t *testing.T) {
 
 // TestInsertAtLevel_SkipCountsComprehensive tests skip counts comprehensively
 func TestInsertAtLevel_SkipCountsComprehensive(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 	// Insert: 10 (level 1), 20 (level 2), 30 (level 1), 40 (level 0)
 	s.InsertAtLevel(10, 1)
 	s.InsertAtLevel(20, 2)
@@ -593,7 +593,7 @@ func TestInsertAtLevel_SkipCountsComprehensive(t *testing.T) {
 
 // TestInsertAtLevel_IncreasingLevels tests inserting nodes with increasing levels
 func TestInsertAtLevel_IncreasingLevels(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 	for i := 0; i <= 5; i++ {
 		s.InsertAtLevel((i+1)*10, i)
 	}
@@ -620,7 +620,7 @@ func TestInsertAtLevel_IncreasingLevels(t *testing.T) {
 
 // TestInsertAtLevel_MultipleSameLevel tests inserting multiple nodes at the same level
 func TestInsertAtLevel_MultipleSameLevel(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 	s.InsertAtLevel(10, 1)
 	s.InsertAtLevel(20, 1)
 	s.InsertAtLevel(30, 1)
@@ -643,7 +643,7 @@ func TestInsertAtLevel_MultipleSameLevel(t *testing.T) {
 
 // TestInsertAtLevel_HeadSkipCounts tests that head skip counts are updated correctly
 func TestInsertAtLevel_HeadSkipCounts(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 	s.InsertAtLevel(10, 0)
 
 	// Head should have skip count of 1 at level 0 (pointing to 10)
@@ -679,7 +679,7 @@ func TestInsertAtLevel_HeadSkipCounts(t *testing.T) {
 
 // TestInsertAtLevel_LevelConsistency tests that nodes only appear at their designated levels
 func TestInsertAtLevel_LevelConsistency(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 	s.InsertAtLevel(10, 1) // Should appear at levels 0, 1
 	s.InsertAtLevel(20, 3) // Should appear at levels 0, 1, 2, 3
 	s.InsertAtLevel(30, 0) // Should appear only at level 0
@@ -720,7 +720,7 @@ func contains(slice []int, val int) bool {
 
 // TestInsertAtLevel_ComplexScenario tests a complex insertion scenario
 func TestInsertAtLevel_ComplexScenario(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 	// Insert in non-sequential order with varying levels
 	insertions := []struct {
 		val   int
@@ -765,7 +765,7 @@ func TestInsertAtLevel_ComplexScenario(t *testing.T) {
 // ------------------------------------------------------------
 
 func TestDelete(t *testing.T) {
-	skipList := NewSkipList()
+	skipList := NewSkipList[int]()
 	itemsToAdd := []int{10, 5, 53, 32}
 	itemsToVerify := []int{5, 32, 53}
 
@@ -779,7 +779,7 @@ func TestDelete(t *testing.T) {
 }
 
 func TestDeleteAbsentElement(t *testing.T) {
-	skipList := NewSkipList()
+	skipList := NewSkipList[int]()
 	itemsToAdd := []int{10, 5, 53, 32}
 	itemsToVerify := []int{5, 10, 32, 53}
 
@@ -793,7 +793,7 @@ func TestDeleteAbsentElement(t *testing.T) {
 }
 
 func TestDeleteSingleElementList(t *testing.T) {
-	skipList := NewSkipList()
+	skipList := NewSkipList[int]()
 	skipList.Add(42)
 
 	skipList.Delete(42)
@@ -804,7 +804,7 @@ func TestDeleteSingleElementList(t *testing.T) {
 }
 
 func TestDeleteMultipleElements(t *testing.T) {
-	skipList := NewSkipList()
+	skipList := NewSkipList[int]()
 	itemsToAdd := []int{10, 5, 53, 32, 7}
 	for _, item := range itemsToAdd {
 		skipList.Add(item)
@@ -819,7 +819,7 @@ func TestDeleteMultipleElements(t *testing.T) {
 }
 
 func TestDeleteSameElementTwice(t *testing.T) {
-	skipList := NewSkipList()
+	skipList := NewSkipList[int]()
 	itemsToAdd := []int{10, 5, 53, 32}
 	for _, item := range itemsToAdd {
 		skipList.Add(item)
@@ -834,7 +834,7 @@ func TestDeleteSameElementTwice(t *testing.T) {
 }
 
 func TestDeleteAllElements(t *testing.T) {
-	skipList := NewSkipList()
+	skipList := NewSkipList[int]()
 	itemsToAdd := []int{10, 5, 53, 32}
 	for _, item := range itemsToAdd {
 		skipList.Add(item)
@@ -850,7 +850,7 @@ func TestDeleteAllElements(t *testing.T) {
 }
 
 func TestDeleteMultiLevelNodePreservesLevels(t *testing.T) {
-	skipList := NewSkipList()
+	skipList := NewSkipList[int]()
 
 	// Insert enough elements to very likely get multi-level nodes.
 	for i := 1; i <= 200; i++ {
@@ -903,7 +903,7 @@ func TestDeleteMultiLevelNodePreservesLevels(t *testing.T) {
 
 // TestDeleteSpans_SimpleDeletion tests that spans are correctly updated after deleting a single node
 func TestDeleteSpans_SimpleDeletion(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 	// Build a deterministic structure: 10 (level 1), 20 (level 2), 30 (level 1)
 	s.InsertAtLevel(10, 2)
 	s.InsertAtLevel(20, 2)
@@ -929,7 +929,7 @@ func TestDeleteSpans_SimpleDeletion(t *testing.T) {
 
 // TestDeleteSpans_DeleteLevel0Node tests deleting a level 0 node
 func TestDeleteSpans_DeleteLevel0Node(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 	// Build: 10 (level 1), 20 (level 0), 30 (level 2)
 	s.InsertAtLevel(10, 1)
 	s.InsertAtLevel(20, 0)
@@ -951,7 +951,7 @@ func TestDeleteSpans_DeleteLevel0Node(t *testing.T) {
 
 // TestDeleteSpans_DeleteMiddleNode tests deleting a node in the middle
 func TestDeleteSpans_DeleteMiddleNode(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 	// Build: 10 (level 1), 20 (level 2), 30 (level 1), 40 (level 0)
 	s.InsertAtLevel(10, 1)
 	s.InsertAtLevel(20, 2)
@@ -975,7 +975,7 @@ func TestDeleteSpans_DeleteMiddleNode(t *testing.T) {
 
 // TestDeleteSpans_DeleteFirstNode tests deleting the first node
 func TestDeleteSpans_DeleteFirstNode(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 	// Build: 10 (level 1), 20 (level 2), 30 (level 1)
 	s.InsertAtLevel(10, 1)
 	s.InsertAtLevel(20, 2)
@@ -1004,7 +1004,7 @@ func TestDeleteSpans_DeleteFirstNode(t *testing.T) {
 
 // TestDeleteSpans_DeleteLastNode tests deleting the last node
 func TestDeleteSpans_DeleteLastNode(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 	// Build: 10 (level 1), 20 (level 2), 30 (level 1)
 	s.InsertAtLevel(10, 1)
 	s.InsertAtLevel(20, 2)
@@ -1025,7 +1025,7 @@ func TestDeleteSpans_DeleteLastNode(t *testing.T) {
 
 // TestDeleteSpans_DeleteMultiLevelNode tests deleting a node that appears at multiple levels
 func TestDeleteSpans_DeleteMultiLevelNode(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 	// Build: 10 (level 1), 20 (level 3), 30 (level 1), 40 (level 0)
 	s.InsertAtLevel(10, 1)
 	s.InsertAtLevel(20, 3)
@@ -1049,7 +1049,7 @@ func TestDeleteSpans_DeleteMultiLevelNode(t *testing.T) {
 
 // TestDeleteSpans_HeadSpansAfterDeletion tests that head spans are updated correctly
 func TestDeleteSpans_HeadSpansAfterDeletion(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 	// Build: 10 (level 0), 20 (level 1), 30 (level 2)
 	s.InsertAtLevel(10, 0)
 	s.InsertAtLevel(20, 1)
@@ -1089,7 +1089,7 @@ func TestDeleteSpans_HeadSpansAfterDeletion(t *testing.T) {
 
 // TestDeleteSpans_MultipleDeletions tests spans after multiple deletions
 func TestDeleteSpans_MultipleDeletions(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 	// Build: 10 (level 1), 20 (level 2), 30 (level 1), 40 (level 0), 50 (level 2)
 	s.InsertAtLevel(10, 1)
 	s.InsertAtLevel(20, 2)
@@ -1118,7 +1118,7 @@ func TestDeleteSpans_MultipleDeletions(t *testing.T) {
 
 // TestDeleteSpans_AllLevelsUpdated tests that spans are updated at all relevant levels
 func TestDeleteSpans_AllLevelsUpdated(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 	// Build: 10 (level 2), 20 (level 3), 30 (level 1), 40 (level 0)
 	s.InsertAtLevel(10, 2)
 	s.InsertAtLevel(20, 3)
@@ -1145,7 +1145,7 @@ func TestDeleteSpans_AllLevelsUpdated(t *testing.T) {
 
 // TestDeleteSpans_ComplexScenario tests a complex deletion scenario
 func TestDeleteSpans_ComplexScenario(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 	// Build a more complex structure
 	s.InsertAtLevel(10, 1)
 	s.InsertAtLevel(20, 3)
@@ -1172,7 +1172,7 @@ func TestDeleteSpans_ComplexScenario(t *testing.T) {
 
 // TestDeleteSpans_VerifyAllNodes tests that all remaining nodes have correct spans
 func TestDeleteSpans_VerifyAllNodes(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 	// Build: 10 (level 1), 20 (level 2), 30 (level 1)
 	s.InsertAtLevel(10, 1)
 	s.InsertAtLevel(20, 2)
@@ -1227,7 +1227,7 @@ func TestDeleteSpans_VerifyAllNodes(t *testing.T) {
 
 // TestDeleteSpans_DeleteFromEmptyLevel tests deleting when a node doesn't exist at a level
 func TestDeleteSpans_DeleteFromEmptyLevel(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 	// Build: 10 (level 1), 20 (level 0), 30 (level 2)
 	s.InsertAtLevel(10, 1)
 	s.InsertAtLevel(20, 0)
@@ -1248,7 +1248,7 @@ func TestDeleteSpans_DeleteFromEmptyLevel(t *testing.T) {
 // TestDeleteSpans_BasicIntegrity tests that spans remain positive and nodes are still findable after deletion
 // This test should pass even with the current buggy Delete() implementation
 func TestDeleteSpans_BasicIntegrity(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 	// Build: 10 (level 1), 20 (level 2), 30 (level 1)
 	s.InsertAtLevel(10, 1)
 	s.InsertAtLevel(20, 2)
@@ -1310,7 +1310,7 @@ func TestDeleteSpans_BasicIntegrity(t *testing.T) {
 
 // TestDeleteSpans_AddDeleteSequence tests spans after a sequence of add and delete operations
 func TestDeleteSpans_AddDeleteSequence(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 
 	// Step 1: Add initial nodes
 	s.InsertAtLevel(10, 1)
@@ -1365,7 +1365,7 @@ func TestDeleteSpans_AddDeleteSequence(t *testing.T) {
 
 // TestDeleteSpans_AddDeleteAddPattern tests a pattern of add-delete-add operations
 func TestDeleteSpans_AddDeleteAddPattern(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 
 	// Add nodes: 10, 20, 30
 	s.InsertAtLevel(10, 1)
@@ -1401,7 +1401,7 @@ func TestDeleteSpans_AddDeleteAddPattern(t *testing.T) {
 
 // TestDeleteSpans_MultipleAddDeleteCycles tests multiple cycles of add and delete
 func TestDeleteSpans_MultipleAddDeleteCycles(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 
 	// Cycle 1: Add nodes
 	s.InsertAtLevel(10, 1)
@@ -1455,7 +1455,7 @@ func TestDeleteSpans_MultipleAddDeleteCycles(t *testing.T) {
 
 // TestDeleteSpans_DeleteThenAddSameValue tests deleting and then adding the same value
 func TestDeleteSpans_DeleteThenAddSameValue(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 
 	// Add nodes
 	s.InsertAtLevel(10, 2)
@@ -1538,7 +1538,7 @@ func TestDeleteSpans_DeleteThenAddSameValue(t *testing.T) {
 
 // TestDeleteSpans_ComplexAddDeleteMix tests a complex mix of add and delete operations
 func TestDeleteSpans_ComplexAddDeleteMix(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 
 	// Build initial structure: 10, 20, 30, 40, 50
 	s.InsertAtLevel(10, 1)
@@ -1629,7 +1629,7 @@ func TestDeleteSpans_ComplexAddDeleteMix(t *testing.T) {
 
 // TestDeleteSpans_HeadSpansThroughOperations tests head spans through multiple operations
 func TestDeleteSpans_HeadSpansThroughOperations(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 
 	// Add nodes at different levels
 	s.InsertAtLevel(10, 0)
@@ -1708,7 +1708,7 @@ func TestDeleteSpans_HeadSpansThroughOperations(t *testing.T) {
 
 // TestDeleteSpans_AllNodesSpansAfterOperations tests all nodes have correct spans after mixed operations
 func TestDeleteSpans_AllNodesSpansAfterOperations(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 
 	// Initial setup
 	s.InsertAtLevel(10, 1)
@@ -1757,7 +1757,7 @@ func TestDeleteSpans_AllNodesSpansAfterOperations(t *testing.T) {
 // ------------------------------------------------------------
 
 func TestSearch(t *testing.T) {
-	skipList := NewSkipList()
+	skipList := NewSkipList[int]()
 	itemsToAdd := []int{10, 5, 53, 32}
 	itemsToVerify := []int{5, 10, 32, 53}
 	for _, item := range itemsToAdd {
@@ -1787,7 +1787,7 @@ func TestSearch(t *testing.T) {
 }
 
 func TestSearchAbsentElement(t *testing.T) {
-	skipList := NewSkipList()
+	skipList := NewSkipList[int]()
 	itemsToAdd := []int{10, 5, 53, 32}
 	for _, item := range itemsToAdd {
 		skipList.Add(item)
@@ -1816,7 +1816,7 @@ func TestSearchAbsentElement(t *testing.T) {
 
 // TestSearchByRank_Basic tests basic search by rank functionality
 func TestSearchByRank_Basic(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 	s.InsertAtLevel(10, 1)
 	s.InsertAtLevel(20, 2)
 	s.InsertAtLevel(30, 1)
@@ -1851,7 +1851,7 @@ func TestSearchByRank_Basic(t *testing.T) {
 
 // TestSearchByRank_AllRanks tests searching for all ranks in a list
 func TestSearchByRank_AllRanks(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 	values := []int{10, 20, 30, 40, 50}
 	for i, val := range values {
 		s.InsertAtLevel(val, i%3) // Vary levels
@@ -1875,7 +1875,7 @@ func TestSearchByRank_AllRanks(t *testing.T) {
 
 // TestSearchByRank_InvalidRanks tests invalid rank values
 func TestSearchByRank_InvalidRanks(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 	s.InsertAtLevel(10, 1)
 	s.InsertAtLevel(20, 1)
 	s.InsertAtLevel(30, 1)
@@ -1919,7 +1919,7 @@ func TestSearchByRank_InvalidRanks(t *testing.T) {
 
 // TestSearchByRank_EmptyList tests search on empty list
 func TestSearchByRank_EmptyList(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 
 	// Any rank should fail on empty list
 	for rank := 1; rank <= 10; rank++ {
@@ -1935,7 +1935,7 @@ func TestSearchByRank_EmptyList(t *testing.T) {
 
 // TestSearchByRank_SingleElement tests search on single element list
 func TestSearchByRank_SingleElement(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 	s.InsertAtLevel(42, 1)
 
 	// Rank 1 should work
@@ -1959,7 +1959,7 @@ func TestSearchByRank_SingleElement(t *testing.T) {
 
 // TestSearchByRank_AfterInsertions tests search after multiple insertions
 func TestSearchByRank_AfterInsertions(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 
 	// Insert in non-sequential order
 	s.InsertAtLevel(30, 2)
@@ -1984,7 +1984,7 @@ func TestSearchByRank_AfterInsertions(t *testing.T) {
 
 // TestSearchByRank_AfterDeletions tests search after deletions
 func TestSearchByRank_AfterDeletions(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 	s.InsertAtLevel(10, 1)
 	s.InsertAtLevel(20, 2)
 	s.InsertAtLevel(30, 1)
@@ -2019,7 +2019,7 @@ func TestSearchByRank_AfterDeletions(t *testing.T) {
 
 // TestSearchByRank_MixedOperations tests search after mixed add/delete operations
 func TestSearchByRank_MixedOperations(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 
 	// Add nodes
 	s.InsertAtLevel(10, 1)
@@ -2078,7 +2078,7 @@ func TestSearchByRank_MixedOperations(t *testing.T) {
 
 // TestSearchByRank_FirstAndLast tests searching for first and last ranks
 func TestSearchByRank_FirstAndLast(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 	s.InsertAtLevel(10, 1)
 	s.InsertAtLevel(20, 2)
 	s.InsertAtLevel(30, 1)
@@ -2106,7 +2106,7 @@ func TestSearchByRank_FirstAndLast(t *testing.T) {
 
 // TestSearchByRank_LargeList tests search on a larger list
 func TestSearchByRank_LargeList(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 
 	// Insert 20 nodes
 	for i := 1; i <= 20; i++ {
@@ -2138,7 +2138,7 @@ func TestSearchByRank_LargeList(t *testing.T) {
 
 // TestSearchByRank_AllRanksSequential tests all ranks sequentially
 func TestSearchByRank_AllRanksSequential(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 
 	// Insert nodes
 	values := []int{5, 10, 15, 20, 25, 30, 35, 40}
@@ -2164,7 +2164,7 @@ func TestSearchByRank_AllRanksSequential(t *testing.T) {
 
 // TestSearchByRank_AfterMultipleDeletions tests search after multiple deletions
 func TestSearchByRank_AfterMultipleDeletions(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 
 	// Insert nodes
 	for i := 1; i <= 10; i++ {
@@ -2192,7 +2192,7 @@ func TestSearchByRank_AfterMultipleDeletions(t *testing.T) {
 
 // TestSearchByRank_ConsistencyWithOrder tests that ranks match sequential order
 func TestSearchByRank_ConsistencyWithOrder(t *testing.T) {
-	s := NewSkipList()
+	s := NewSkipList[int]()
 
 	// Insert nodes in non-sequential order
 	insertOrder := []int{50, 10, 30, 20, 40}

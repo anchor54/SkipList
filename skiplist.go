@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"math/rand"
 )
 
@@ -9,42 +10,70 @@ const (
 	PROBABILILTY float32 = 0.5
 )
 
-type Node struct {
-	val     int
-	skips   []int
-	forward []*Node
+type Comparator[T any] func(a, b T) int
+
+type Comparable[T any] interface {
+	Compare(other T) int
 }
 
-type SkipList struct {
-	head       *Node
-	tail       *Node
+type Node[T any] struct {
+	val     T
+	skips   []int
+	forward []*Node[T]
+}
+
+type SkipList[T any] struct {
+	head       *Node[T]
+	tail       *Node[T]
 	maxLevel   int
 	length     int
 	levelCount [MAX_LEVEL_CAP + 1]int
+	comparator Comparator[T]
 }
 
-func NewNode(val int, forwards int) *Node {
-	return &Node{
+func NewNode[T any](val T, forwards int) *Node[T] {
+	return &Node[T]{
 		val:     val,
-		forward: make([]*Node, forwards),
+		forward: make([]*Node[T], forwards),
 		skips:   make([]int, forwards),
 	}
 }
 
-func NewSkipList() *SkipList {
-	var zero int
-	first := NewNode(zero, MAX_LEVEL_CAP+1)
+func NewSkipList[T cmp.Ordered]() *SkipList[T] {
+	var zero T
+	first := NewNode(zero, MAX_LEVEL_CAP + 1)
 
 	for i := 0; i <= MAX_LEVEL_CAP; i++ {
 		first.forward[i] = nil
 		first.skips[i] = 1
 	}
 
-	return &SkipList{
+	return &SkipList[T]{
 		head:     first,
 		tail:     nil,
 		maxLevel: 0,
 		length:   0,
+		comparator: cmp.Compare[T],
+	}
+}
+
+func NewComparableSkipList[T Comparable[T]]() *SkipList[T] {
+	var zero T
+	first := NewNode(zero, MAX_LEVEL_CAP + 1)
+
+	for i := 0; i <= MAX_LEVEL_CAP; i++ {
+		first.forward[i] = nil
+		first.skips[i] = 1
+	}
+
+	return &SkipList[T]{
+		head:     first,
+		tail:     nil,
+		maxLevel: 0,
+		length:   0,
+		comparator: func(a, b T) int {
+			return a.Compare(b)
+		},
 	}
 }
 
@@ -56,24 +85,24 @@ func randomLevel() int {
 	return lvl
 }
 
-func (sl *SkipList) Add(val int) {
+func (sl *SkipList[T]) Add(val T) {
 	sl.InsertAtLevel(val, randomLevel())
 }
 
-func (sl *SkipList) InsertAtLevel(val int, lvl int) {
-	heirarchy := [MAX_LEVEL_CAP + 1]*Node{}
+func (sl *SkipList[T]) InsertAtLevel(val T, lvl int) {
+	heirarchy := [MAX_LEVEL_CAP + 1]*Node[T]{}
 	rank := [MAX_LEVEL_CAP + 1]int{}
 	curr := sl.head
 	skipped := 0
 
 	for currLevel := sl.maxLevel; currLevel >= 0; currLevel-- {
-		for curr.forward[currLevel] != nil && curr.forward[currLevel].val <= val {
+		for curr.forward[currLevel] != nil && sl.comparator(curr.forward[currLevel].val, val) <= 0 {
 			skipped += curr.skips[currLevel]
 			curr = curr.forward[currLevel]
 		}
 
 		// do nothing if the value is already added
-		if curr != sl.head && curr.val == val {
+		if curr != sl.head && sl.comparator(curr.val, val) == 0 {
 			return
 		}
 
@@ -112,18 +141,18 @@ func (sl *SkipList) InsertAtLevel(val int, lvl int) {
 	sl.length++
 }
 
-func (sl *SkipList) Delete(val int) {
-	heirarchy := [MAX_LEVEL_CAP + 1]*Node{}
+func (sl *SkipList[T]) Delete(val T) {
+	heirarchy := [MAX_LEVEL_CAP + 1]*Node[T]{}
 	curr := sl.head
-	var nodeToDelete *Node = nil
+	var nodeToDelete *Node[T] = nil
 
 	for currLevel := sl.maxLevel; currLevel >= 0; currLevel-- {
-		for curr.forward[currLevel] != nil && curr.forward[currLevel].val < val {
+		for curr.forward[currLevel] != nil && sl.comparator(curr.forward[currLevel].val, val) < 0 {
 			curr = curr.forward[currLevel]
 		}
 
 		nodeToDelete = curr.forward[currLevel]
-		if nodeToDelete != nil && nodeToDelete.val == val {
+		if nodeToDelete != nil && sl.comparator(nodeToDelete.val, val) == 0 {
 			curr.skips[currLevel] += nodeToDelete.skips[currLevel] - 1
 			curr.forward[currLevel] = nodeToDelete.forward[currLevel]
 			nodeToDelete.forward[currLevel] = nil
@@ -153,22 +182,22 @@ func (sl *SkipList) Delete(val int) {
 	sl.length--
 }
 
-func (sl *SkipList) SearchByValue(val int) (*Node, bool) {
+func (sl *SkipList[T]) SearchByValue(val T) (*Node[T], bool) {
 	curr := sl.head
 
 	for currLevel := sl.maxLevel; currLevel >= 0; currLevel-- {
-		for curr.forward[currLevel] != nil && curr.forward[currLevel].val <= val {
+		for curr.forward[currLevel] != nil && sl.comparator(curr.forward[currLevel].val, val) <= 0 {
 			curr = curr.forward[currLevel]
 		}
 
-		if curr != sl.head && curr.val == val {
+		if curr != sl.head && sl.comparator(curr.val, val) == 0 {
 			return curr, true
 		}
 	}
 	return nil, false
 }
 
-func (sl *SkipList) SearchByRank(rank int) (*Node, bool) {
+func (sl *SkipList[T]) SearchByRank(rank int) (*Node[T], bool) {
 	if rank < 1 || rank > sl.length {
 		return nil, false
 	}
