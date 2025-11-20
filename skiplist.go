@@ -23,10 +23,11 @@ type Node struct {
 }
 
 type SkipList struct {
-	head     *Node
-	tail     *Node
-	maxLevel int
-	length   int
+	head       *Node
+	tail       *Node
+	maxLevel   int
+	length     int
+	levelCount [MAX_LEVEL_CAP + 1]int
 }
 
 func NewNode(val int, forwards int) *Node {
@@ -38,17 +39,17 @@ func NewNode(val int, forwards int) *Node {
 }
 
 func NewSkipList() *SkipList {
-	first := NewNode(MinInt, MAX_LEVEL_CAP+1)
-	last := NewNode(MaxInt, 0)
+	var zero int
+	first := NewNode(zero, MAX_LEVEL_CAP+1)
 
 	for i := 0; i <= MAX_LEVEL_CAP; i++ {
-		first.forward[i] = last
+		first.forward[i] = nil
 		first.skips[i] = 1
 	}
 
 	return &SkipList{
 		head:     first,
-		tail:     last,
+		tail:     nil,
 		maxLevel: 0,
 		length:   0,
 	}
@@ -73,13 +74,13 @@ func (sl *SkipList) InsertAtLevel(val int, lvl int) {
 	skipped := 0
 
 	for currLevel := sl.maxLevel; currLevel >= 0; currLevel-- {
-		for curr.forward[currLevel].val <= val {
+		for curr.forward[currLevel] != nil && curr.forward[currLevel].val <= val {
 			skipped += curr.skips[currLevel]
 			curr = curr.forward[currLevel]
 		}
 
 		// do nothing if the value is already added
-		if curr.val == val {
+		if curr != sl.head && curr.val == val {
 			return
 		}
 
@@ -104,6 +105,8 @@ func (sl *SkipList) InsertAtLevel(val int, lvl int) {
 
 		newNode.skips[i] = rank[i] + heirarchy[i].skips[i] - skipped
 		heirarchy[i].skips[i] = skipped - rank[i] + 1
+
+		sl.levelCount[i]++
 	}
 
 	for i := lvl + 1; i <= sl.maxLevel; i++ {
@@ -117,26 +120,25 @@ func (sl *SkipList) InsertAtLevel(val int, lvl int) {
 }
 
 func (sl *SkipList) Delete(val int) {
-	if val == sl.head.val {
-		panic("Invalid operation: Cannot delete head of list")
-	}
-	if val == sl.tail.val {
-		panic("Invalid operation: Cannot delete tail of list")
-	}
 	heirarchy := [MAX_LEVEL_CAP + 1]*Node{}
 	curr := sl.head
 	var nodeToDelete *Node = nil
 
 	for currLevel := sl.maxLevel; currLevel >= 0; currLevel-- {
-		for curr.forward[currLevel].val < val {
+		for curr.forward[currLevel] != nil && curr.forward[currLevel].val < val {
 			curr = curr.forward[currLevel]
 		}
 
 		nodeToDelete = curr.forward[currLevel]
-		if nodeToDelete.val == val {
+		if nodeToDelete != nil && nodeToDelete.val == val {
 			curr.skips[currLevel] += nodeToDelete.skips[currLevel] - 1
 			curr.forward[currLevel] = nodeToDelete.forward[currLevel]
 			nodeToDelete.forward[currLevel] = nil
+
+			sl.levelCount[currLevel]--
+			if sl.levelCount[currLevel] == 0 {
+				sl.maxLevel--
+			}
 		} else {
 			heirarchy[currLevel] = curr
 		}
@@ -159,18 +161,14 @@ func (sl *SkipList) Delete(val int) {
 }
 
 func (sl *SkipList) SearchByValue(val int) (*Node, bool) {
-	if val <= sl.head.val || val >= sl.tail.val {
-		return nil, false
-	}
-
 	curr := sl.head
 
 	for currLevel := sl.maxLevel; currLevel >= 0; currLevel-- {
-		for curr.forward[currLevel].val <= val {
+		for curr.forward[currLevel] != nil && curr.forward[currLevel].val <= val {
 			curr = curr.forward[currLevel]
 		}
 
-		if curr.val == val {
+		if curr != sl.head && curr.val == val {
 			return curr, true
 		}
 	}
@@ -186,7 +184,7 @@ func (sl *SkipList) SearchByRank(rank int) (*Node, bool) {
 	rankUntil := 0
 
 	for currLevel := sl.maxLevel; currLevel >= 0; currLevel-- {
-		for rankUntil + curr.skips[currLevel] <= rank {
+		for curr != nil && rankUntil+curr.skips[currLevel] <= rank {
 			rankUntil += curr.skips[currLevel]
 			curr = curr.forward[currLevel]
 		}

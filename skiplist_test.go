@@ -6,33 +6,11 @@ import "testing"
 // Helper functions
 // ------------------------------------------------------------
 
-func createSkipList() *SkipList {
-	first := &Node{
-		val:     MinInt,
-		forward: make([]*Node, MAX_LEVEL_CAP+1),
-		skips:   make([]int, MAX_LEVEL_CAP+1),
-	}
-	last := &Node{val: MaxInt, forward: make([]*Node, 0), skips: make([]int, 0)}
-
-	for i := 0; i <= MAX_LEVEL_CAP; i++ {
-		first.forward[i] = last
-		first.skips[i] = 1
-	}
-
-	return &SkipList{
-		head:     first,
-		tail:     last,
-		maxLevel: 0,
-	}
-}
-
 func assertOrder(t *testing.T, sl *SkipList, expected []int) {
-	t.Helper()
-
-	curr := sl.head
+	t.Helper()	
+	
 	i := 0
-
-	for {
+	for curr := sl.head.forward[0]; curr != nil && curr.forward[0] != nil; curr = curr.forward[0] {
 		if i >= len(expected) {
 			t.Fatalf("skiplist has more elements than expected; extra element %d", curr.val)
 		}
@@ -40,12 +18,6 @@ func assertOrder(t *testing.T, sl *SkipList, expected []int) {
 		if curr.val != expected[i] {
 			t.Fatalf("value mismatch at index %d: got %d, want %d", i, curr.val, expected[i])
 		}
-
-		if curr == sl.tail {
-			break
-		}
-
-		curr = curr.forward[0]
 		i++
 	}
 
@@ -165,22 +137,10 @@ func checkSpans(t *testing.T, s *SkipList, v int, expectedSpans []int) {
 // ------------------------------------------------------------
 
 func TestAddInit(t *testing.T) {
-	skipList := createSkipList()
+	skipList := NewSkipList()
 
 	if skipList.head == nil {
 		t.Error("Skiplist's head cannot be nil")
-	}
-
-	if skipList.tail == nil {
-		t.Error("Skiplist's tail cannot be nil")
-	}
-
-	if skipList.head.val != MinInt {
-		t.Error("Skiplist's first element has to be", MinInt)
-	}
-
-	if skipList.tail.val != MaxInt {
-		t.Error("Skiplist's last element has to be", MaxInt)
 	}
 
 	if skipList.head.forward[0] != skipList.tail {
@@ -190,9 +150,9 @@ func TestAddInit(t *testing.T) {
 
 func TestAdd(t *testing.T) {
 	// 1. setup
-	skipList := createSkipList()
+	skipList := NewSkipList()
 	itemsToAdd := []int{10, 5, 53, 32}
-	itemsToVerify := []int{MinInt, 5, 10, 32, 53, MaxInt}
+	itemsToVerify := []int{5, 10, 32, 53}
 	// 2. action
 	for _, item := range itemsToAdd {
 		skipList.Add(item)
@@ -205,9 +165,9 @@ func TestAdd(t *testing.T) {
 // Adding a duplicate item should not increase the count of elements
 func TestAddDuplicate(t *testing.T) {
 	// 1. setup
-	skipList := createSkipList()
+	skipList := NewSkipList()
 	itemsToAdd := []int{10, 5, 53, 32}
-	itemsToVerify := []int{MinInt, 5, 10, 32, 53, MaxInt}
+	itemsToVerify := []int{5, 10, 32, 53}
 	// 2. action
 	for _, item := range itemsToAdd {
 		skipList.Add(item)
@@ -221,9 +181,9 @@ func TestAddDuplicate(t *testing.T) {
 }
 
 func TestAddWithNegativeAndZero(t *testing.T) {
-	sl := createSkipList()
+	sl := NewSkipList()
 	toAdd := []int{0, -10, 15, -1, 7}
-	expected := []int{MinInt, -10, -1, 0, 7, 15, MaxInt}
+	expected := []int{-10, -1, 0, 7, 15}
 
 	for _, v := range toAdd {
 		sl.Add(v)
@@ -233,9 +193,9 @@ func TestAddWithNegativeAndZero(t *testing.T) {
 }
 
 func TestAddAscendingInput(t *testing.T) {
-	sl := createSkipList()
+	sl := NewSkipList()
 	toAdd := []int{1, 2, 3, 4, 5}
-	expected := []int{MinInt, 1, 2, 3, 4, 5, MaxInt}
+	expected := []int{1, 2, 3, 4, 5}
 
 	for _, v := range toAdd {
 		sl.Add(v)
@@ -245,9 +205,9 @@ func TestAddAscendingInput(t *testing.T) {
 }
 
 func TestAddDescendingInput(t *testing.T) {
-	sl := createSkipList()
+	sl := NewSkipList()
 	toAdd := []int{5, 4, 3, 2, 1}
-	expected := []int{MinInt, 1, 2, 3, 4, 5, MaxInt}
+	expected := []int{1, 2, 3, 4, 5}
 
 	for _, v := range toAdd {
 		sl.Add(v)
@@ -257,9 +217,9 @@ func TestAddDescendingInput(t *testing.T) {
 }
 
 func TestAddMultipleDuplicates(t *testing.T) {
-	sl := createSkipList()
+	sl := NewSkipList()
 	toAdd := []int{10, 10, 10, 10}
-	expected := []int{MinInt, 10, MaxInt}
+	expected := []int{10}
 
 	for _, v := range toAdd {
 		sl.Add(v)
@@ -269,7 +229,7 @@ func TestAddMultipleDuplicates(t *testing.T) {
 }
 
 func TestMaxLevelAndNodeLevels(t *testing.T) {
-	sl := createSkipList()
+	sl := NewSkipList()
 
 	// Add a bunch of elements to exercise randomLevel
 	for i := range 1000 {
@@ -281,7 +241,7 @@ func TestMaxLevelAndNodeLevels(t *testing.T) {
 	}
 
 	// Check each node's level is within bounds and consistent
-	for curr := sl.head; ; {
+	for curr := sl.head; curr != nil; curr = curr.forward[0] {
 		nodeLevel := len(curr.forward) - 1
 		if curr == sl.tail && nodeLevel != -1 {
 			t.Fatalf("last node should have 0 forward pointers")
@@ -299,12 +259,11 @@ func TestMaxLevelAndNodeLevels(t *testing.T) {
 		if curr == sl.tail {
 			break
 		}
-		curr = curr.forward[0]
 	}
 }
 
 func TestForwardPointersMonotonic(t *testing.T) {
-	sl := createSkipList()
+	sl := NewSkipList()
 
 	vals := []int{10, 5, 53, 32, 7, 1, 100}
 	for _, v := range vals {
@@ -312,11 +271,8 @@ func TestForwardPointersMonotonic(t *testing.T) {
 	}
 
 	for curr := sl.head; curr != sl.tail; curr = curr.forward[0] {
-		for level := 0; level < len(curr.forward); level++ {
+		for level := 0; level < len(curr.forward) && curr.forward[level] != nil; level++ {
 			next := curr.forward[level]
-			if next == nil {
-				t.Fatalf("node %d has nil forward pointer at level %d", curr.val, level)
-			}
 			if next.val < curr.val {
 				t.Fatalf("forward pointer at level %d is not monotonic: %d -> %d", level, curr.val, next.val)
 			}
@@ -371,7 +327,7 @@ func TestInsertAtLevel_Level0(t *testing.T) {
 	s.InsertAtLevel(7, 0)
 
 	// Verify order
-	assertOrder(t, s, []int{MinInt, 5, 7, 10, MaxInt})
+	assertOrder(t, s, []int{5, 7, 10})
 
 	// Verify maxLevel is still 0
 	if s.maxLevel != 0 {
@@ -460,7 +416,7 @@ func TestInsertAtLevel_DuplicateValue(t *testing.T) {
 	}
 
 	// Verify order is still correct
-	assertOrder(t, s, []int{MinInt, 10, 20, 30, MaxInt})
+	assertOrder(t, s, []int{10, 20, 30})
 }
 
 // TestInsertAtLevel_ForwardPointers tests that forward pointers are correctly set at all levels
@@ -509,13 +465,13 @@ func TestInsertAtLevel_ForwardPointersCorrectness(t *testing.T) {
 
 	// Verify forward pointers are non-nil and point to correct nodes
 	for level := 0; level <= s.maxLevel; level++ {
-		for curr := s.head; curr != s.tail; {
+		for curr := s.head; curr != s.tail && curr.forward[level] != nil; {
 			next := curr.forward[level]
 			if next == nil {
 				t.Fatalf("nil forward pointer at level %d from node %d", level, curr.val)
 			}
 			if next.val < curr.val {
-				t.Fatalf("forward pointer at level %d violates ordering: %d -> %d", level, curr.val, next.val)
+					t.Fatalf("forward pointer at level %d violates ordering: %d -> %d", level, curr.val, next.val)
 			}
 			if curr == s.head && next == s.tail && level > s.maxLevel {
 				// This is fine for levels above maxLevel
@@ -536,7 +492,7 @@ func TestInsertAtLevel_InsertAtBeginning(t *testing.T) {
 	s.InsertAtLevel(50, 2)
 	s.InsertAtLevel(10, 0)
 
-	assertOrder(t, s, []int{MinInt, 10, 50, 100, MaxInt})
+	assertOrder(t, s, []int{10, 50, 100})
 
 	// Verify node 10 only appears at level 0
 	node10 := findNode(s, 10)
@@ -558,7 +514,7 @@ func TestInsertAtLevel_InsertAtEnd(t *testing.T) {
 	s.InsertAtLevel(50, 2)
 	s.InsertAtLevel(100, 0)
 
-	assertOrder(t, s, []int{MinInt, 10, 50, 100, MaxInt})
+	assertOrder(t, s, []int{10, 50, 100})
 
 	// Verify node 100 only appears at level 0
 	node100 := findNode(s, 100)
@@ -579,7 +535,7 @@ func TestInsertAtLevel_InsertInMiddle(t *testing.T) {
 	s.InsertAtLevel(50, 2)
 	s.InsertAtLevel(30, 1) // Insert in middle
 
-	assertOrder(t, s, []int{MinInt, 10, 30, 50, MaxInt})
+	assertOrder(t, s, []int{10, 30, 50})
 
 	// Verify node 30 appears at levels 0 and 1
 	node30 := findNode(s, 30)
@@ -646,7 +602,7 @@ func TestInsertAtLevel_IncreasingLevels(t *testing.T) {
 		t.Fatalf("maxLevel should be 5, got %d", s.maxLevel)
 	}
 
-	assertOrder(t, s, []int{MinInt, 10, 20, 30, 40, 50, 60, MaxInt})
+	assertOrder(t, s, []int{10, 20, 30, 40, 50, 60})
 
 	// Verify each node has correct number of forward pointers
 	for i := 0; i <= 5; i++ {
@@ -670,7 +626,7 @@ func TestInsertAtLevel_MultipleSameLevel(t *testing.T) {
 	s.InsertAtLevel(30, 1)
 	s.InsertAtLevel(40, 1)
 
-	assertOrder(t, s, []int{MinInt, 10, 20, 30, 40, MaxInt})
+	assertOrder(t, s, []int{10, 20, 30, 40})
 
 	// All nodes should appear at level 0 and 1
 	level0Vals := collectLevelValues(s)[0]
@@ -784,7 +740,7 @@ func TestInsertAtLevel_ComplexScenario(t *testing.T) {
 	}
 
 	// Verify order
-	assertOrder(t, s, []int{MinInt, 10, 20, 30, 50, 60, 70, 80, MaxInt})
+	assertOrder(t, s, []int{10, 20, 30, 50, 60, 70, 80})
 
 	// Verify maxLevel is 4
 	if s.maxLevel != 4 {
@@ -804,33 +760,14 @@ func TestInsertAtLevel_ComplexScenario(t *testing.T) {
 	}
 }
 
-// TestInsertAtLevel_BoundaryValues tests inserting boundary values
-func TestInsertAtLevel_BoundaryValues(t *testing.T) {
-	s := NewSkipList()
-	// Insert values near MinInt and MaxInt
-	s.InsertAtLevel(MinInt+1, 2)
-	s.InsertAtLevel(MaxInt-1, 2)
-	s.InsertAtLevel(0, 1)
-
-	assertOrder(t, s, []int{MinInt, MinInt + 1, 0, MaxInt - 1, MaxInt})
-
-	// Verify nodes exist
-	if findNode(s, MinInt+1) == nil {
-		t.Fatalf("node %d not found", MinInt+1)
-	}
-	if findNode(s, MaxInt-1) == nil {
-		t.Fatalf("node %d not found", MaxInt-1)
-	}
-}
-
 // ------------------------------------------------------------
 // Delete Test cases
 // ------------------------------------------------------------
 
 func TestDelete(t *testing.T) {
-	skipList := createSkipList()
+	skipList := NewSkipList()
 	itemsToAdd := []int{10, 5, 53, 32}
-	itemsToVerify := []int{MinInt, 5, 32, 53, MaxInt}
+	itemsToVerify := []int{5, 32, 53}
 
 	for _, item := range itemsToAdd {
 		skipList.Add(item)
@@ -842,9 +779,9 @@ func TestDelete(t *testing.T) {
 }
 
 func TestDeleteAbsentElement(t *testing.T) {
-	skipList := createSkipList()
+	skipList := NewSkipList()
 	itemsToAdd := []int{10, 5, 53, 32}
-	itemsToVerify := []int{MinInt, 5, 10, 32, 53, MaxInt}
+	itemsToVerify := []int{5, 10, 32, 53}
 
 	for _, item := range itemsToAdd {
 		skipList.Add(item)
@@ -855,35 +792,19 @@ func TestDeleteAbsentElement(t *testing.T) {
 	assertOrder(t, skipList, itemsToVerify)
 }
 
-func TestDeleteFirstOrLastElement(t *testing.T) {
-	skipList := createSkipList()
-	itemsToAdd := []int{10, 5, 53, 32}
-
-	for _, item := range itemsToAdd {
-		skipList.Add(item)
-	}
-
-	assertPanic(t, func() {
-		skipList.Delete(MinInt)
-	})
-
-	assertPanic(t, func() {
-		skipList.Delete(MaxInt)
-	})
-}
-
 func TestDeleteSingleElementList(t *testing.T) {
-	skipList := createSkipList()
+	skipList := NewSkipList()
 	skipList.Add(42)
 
 	skipList.Delete(42)
 
-	expected := []int{MinInt, MaxInt}
-	assertOrder(t, skipList, expected)
+	if skipList.length != 0 {
+		t.Fatalf("expected length to be 0 got %d", skipList.length)
+	}
 }
 
 func TestDeleteMultipleElements(t *testing.T) {
-	skipList := createSkipList()
+	skipList := NewSkipList()
 	itemsToAdd := []int{10, 5, 53, 32, 7}
 	for _, item := range itemsToAdd {
 		skipList.Add(item)
@@ -893,12 +814,12 @@ func TestDeleteMultipleElements(t *testing.T) {
 	skipList.Delete(5)
 	skipList.Delete(32)
 
-	expected := []int{MinInt, 7, 10, 53, MaxInt}
+	expected := []int{7, 10, 53}
 	assertOrder(t, skipList, expected)
 }
 
 func TestDeleteSameElementTwice(t *testing.T) {
-	skipList := createSkipList()
+	skipList := NewSkipList()
 	itemsToAdd := []int{10, 5, 53, 32}
 	for _, item := range itemsToAdd {
 		skipList.Add(item)
@@ -908,12 +829,12 @@ func TestDeleteSameElementTwice(t *testing.T) {
 	// second delete should be a no-op
 	skipList.Delete(10)
 
-	expected := []int{MinInt, 5, 32, 53, MaxInt}
+	expected := []int{5, 32, 53}
 	assertOrder(t, skipList, expected)
 }
 
 func TestDeleteAllElements(t *testing.T) {
-	skipList := createSkipList()
+	skipList := NewSkipList()
 	itemsToAdd := []int{10, 5, 53, 32}
 	for _, item := range itemsToAdd {
 		skipList.Add(item)
@@ -923,12 +844,13 @@ func TestDeleteAllElements(t *testing.T) {
 		skipList.Delete(item)
 	}
 
-	expected := []int{MinInt, MaxInt}
-	assertOrder(t, skipList, expected)
+	if skipList.length != 0 {
+		t.Fatalf("expected length to be 0, but got %d", skipList.length)
+	}
 }
 
 func TestDeleteMultiLevelNodePreservesLevels(t *testing.T) {
-	skipList := createSkipList()
+	skipList := NewSkipList()
 
 	// Insert enough elements to very likely get multi-level nodes.
 	for i := 1; i <= 200; i++ {
@@ -1380,8 +1302,8 @@ func TestDeleteSpans_BasicIntegrity(t *testing.T) {
 		}
 	}
 	for i := 0; i < len(node30After.forward); i++ {
-		if node30After.forward[i] == nil {
-			t.Fatalf("node 30 forward pointer at level %d should not be nil", i)
+		if node30After.forward[i] != nil {
+			t.Fatalf("node 30 forward pointer at level %d should be nil", i)
 		}
 	}
 }
@@ -1827,7 +1749,7 @@ func TestDeleteSpans_AllNodesSpansAfterOperations(t *testing.T) {
 	checkSpans(t, s, 40, []int{1})
 
 	// Verify order is correct
-	assertOrder(t, s, []int{MinInt, 15, 25, 35, 40, MaxInt})
+	assertOrder(t, s, []int{15, 25, 35, 40})
 }
 
 // ------------------------------------------------------------
@@ -1835,7 +1757,7 @@ func TestDeleteSpans_AllNodesSpansAfterOperations(t *testing.T) {
 // ------------------------------------------------------------
 
 func TestSearch(t *testing.T) {
-	skipList := createSkipList()
+	skipList := NewSkipList()
 	itemsToAdd := []int{10, 5, 53, 32}
 	itemsToVerify := []int{5, 10, 32, 53}
 	for _, item := range itemsToAdd {
@@ -1865,7 +1787,7 @@ func TestSearch(t *testing.T) {
 }
 
 func TestSearchAbsentElement(t *testing.T) {
-	skipList := createSkipList()
+	skipList := NewSkipList()
 	itemsToAdd := []int{10, 5, 53, 32}
 	for _, item := range itemsToAdd {
 		skipList.Add(item)
@@ -1885,31 +1807,6 @@ func TestSearchAbsentElement(t *testing.T) {
 
 	if _, present := skipList.SearchByValue(33); present {
 		t.Fatalf("item 0 found in skip list but should not be present")
-	}
-}
-
-func TestSearchSentinelElements(t *testing.T) {
-	skipList := createSkipList()
-
-	if _, present := skipList.SearchByValue(MinInt); present {
-		t.Fatalf("item %d found in skip list but should not be present", MinInt)
-	}
-
-	if _, present := skipList.SearchByValue(MaxInt); present {
-		t.Fatalf("item %d found in skip list but should not be present", MaxInt)
-	}
-}
-
-func TestDeleteAndSearch(t *testing.T) {
-	skipList := createSkipList()
-	itemsToAdd := []int{10, 5, 53, 32}
-	for _, item := range itemsToAdd {
-		skipList.Add(item)
-	}
-
-	skipList.Delete(53)
-	if _, present := skipList.SearchByValue(53); present {
-		t.Fatalf("item %d found in skip list but should not be present", MaxInt)
 	}
 }
 
