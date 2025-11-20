@@ -53,6 +53,13 @@ func (n *Node[T]) Value() T {
 	return n.val
 }
 
+func (n *Node[T]) GetNextNodeAtLevel(level int) *Node[T] {
+	if level >= len(n.forward) {
+		return nil
+	}
+	return n.forward[level]
+}
+
 type SkipList[T any] struct {
 	head       *Node[T]
 	tail       *Node[T]
