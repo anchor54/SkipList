@@ -63,6 +63,11 @@ func main() {
         fmt.Println("3rd element:", node)
     }
 
+    // Get rank of a value
+    if rank, found := sl.GetRank(15); found {
+        fmt.Println("15 is at rank:", rank) // Output: 15 is at rank: 3
+    }
+
     // Iterate over all elements
     sl.Range(func(val int) bool {
         fmt.Printf("%d ", val)
@@ -162,6 +167,28 @@ if node, found := sl.SearchByRank(3); found {
     fmt.Println("3rd element:", node.val)
 }
 ```
+
+#### `GetRank(item T) (int, bool)`
+Gets the rank (1-indexed position) of a value in the skip list. Returns the rank and true if found, or -1 and false if not found.
+
+**Time Complexity**: O(log n)
+
+```go
+// Get the rank of value 15
+if rank, found := sl.GetRank(15); found {
+    fmt.Println("15 is at rank:", rank)
+}
+
+// Check if value exists and get its rank
+rank, found := sl.GetRank(20)
+if !found {
+    fmt.Println("20 not found in skip list")
+} else {
+    fmt.Printf("20 is at rank %d\n", rank)
+}
+```
+
+**Note**: `GetRank` and `SearchByRank` are inverse operations - if `GetRank(val)` returns `rank`, then `SearchByRank(rank)` will return `val`.
 
 ### Utility Methods
 
@@ -266,6 +293,7 @@ See [examples/string_skiplist.go](examples/string_skiplist.go) for a complete ex
 | Delete    | O(log n) | O(n) |
 | SearchByValue | O(log n) | O(n) |
 | SearchByRank | O(log n) | O(n) |
+| GetRank   | O(log n) | O(n) |
 | Contains  | O(log n) | O(n) |
 
 ### Space Complexity

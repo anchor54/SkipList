@@ -249,6 +249,23 @@ func (sl *SkipList[T]) SearchByRank(rank int) (*Node[T], bool) {
 	return nil, false
 }
 
+func (sl *SkipList[T]) GetRank(item T) (int, bool) {
+	curr := sl.head
+	rank := 0
+
+	for currLevel := sl.maxLevel; currLevel >= 0; currLevel-- {
+		for curr.forward[currLevel] != nil && sl.comparator(curr.forward[currLevel].val, item) <= 0 {
+			rank += curr.skips[currLevel]
+			curr = curr.forward[currLevel]
+		}
+
+		if curr != sl.head && sl.comparator(curr.val, item) == 0 {
+			return rank, true
+		}
+	}
+	return -1, false
+}
+
 // Len returns the number of elements in the skip list.
 func (sl *SkipList[T]) Len() int {
 	return sl.length
