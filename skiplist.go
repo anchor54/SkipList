@@ -4,17 +4,10 @@ import (
 	"math/rand"
 )
 
-const MAX_LEVEL_CAP = 16
-const PROBABILILTY float32 = 0.5
-
-// Source - https://stackoverflow.com/a
-// Posted by nmichaels, modified by community. See post 'Timeline' for change history
-// Retrieved 2025-11-18, License - CC BY-SA 3.0
-
-const MaxUint = ^uint(0)
-const MinUint = 0
-const MaxInt = int(MaxUint >> 1)
-const MinInt = -MaxInt - 1
+const (
+	MAX_LEVEL_CAP = 16
+	PROBABILILTY float32 = 0.5
+)
 
 type Node struct {
 	val     int
