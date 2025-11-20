@@ -1,0 +1,53 @@
+# golangci-lint configuration for SkipList project
+# See https://golangci-lint.run/usage/configuration/ for more options
+
+run:
+  timeout: 5m
+  tests: true
+  skip-dirs:
+    - examples
+
+linters:
+  enable:
+    - errcheck      # Check that error return values are used
+    - gosimple      # Simplify code
+    - govet         # Run go vet
+    - ineffassign   # Detect ineffectual assignments
+    - staticcheck   # Static analysis
+    - unused        # Check for unused constants, variables, functions and types
+    - gofmt         # Check formatting
+    - goimports     # Check import formatting
+    - misspell      # Find commonly misspelled English words
+    - revive        # Fast, configurable, extensible linter
+    - unconvert     # Remove unnecessary type conversions
+    - unparam       # Find unused function parameters
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+  govet:
+    check-shadowing: true
+  gofmt:
+    simplify: true
+  goimports:
+    local-prefixes: github.com/anchor54/SkipList
+  revive:
+    rules:
+      - name: exported
+        severity: warning
+      - name: var-naming
+        severity: warning
+      - name: package-comments
+        severity: warning
+
+issues:
+  exclude-rules:
+    # Exclude some linters from running on tests files
+    - path: _test\.go
+      linters:
+        - errcheck
+        - gosec
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
