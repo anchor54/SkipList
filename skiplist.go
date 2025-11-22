@@ -256,6 +256,25 @@ func (sl *SkipList[T]) SearchByRank(rank int) (*Node[T], bool) {
 	return nil, false
 }
 
+func (sl *SkipList[T]) GetLowerBound(val T) (*Node[T], bool) {
+	curr := sl.head
+
+	for currLevel := sl.maxLevel; currLevel >= 0; currLevel-- {
+		for curr.forward[currLevel] != nil && sl.comparator(curr.forward[currLevel].val, val) < 0 {
+			curr = curr.forward[currLevel]
+		}
+	}
+
+	// move to the next node
+	curr = curr.forward[0]
+
+	if curr != nil {
+		return curr, true
+	}
+
+	return nil, false
+}
+
 func (sl *SkipList[T]) GetRank(item T) (int, bool) {
 	curr := sl.head
 	rank := 0

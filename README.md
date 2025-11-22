@@ -58,6 +58,11 @@ func main() {
         fmt.Println("Found:", node)
     }
 
+    // Search for a lower bound
+    if node, found := sl.GetLowerBound(12); found {
+        fmt.Println("Lower bound for 12 is:", node.Value()) // Output: 15
+    }
+
     // Search by rank (position)
     if node, found := sl.SearchByRank(3); found {
         fmt.Println("3rd element:", node)
@@ -153,6 +158,19 @@ Searches for a value and returns the node and a boolean indicating if found.
 ```go
 if node, found := sl.SearchByValue(10); found {
     fmt.Println("Found:", node.val)
+}
+```
+
+#### `GetLowerBound(val T) (*Node[T], bool)`
+Searches for the first element with a value greater than or equal to the given value.
+
+**Time Complexity**: O(log n) average
+
+```go
+// Find the first element >= 12
+if node, found := sl.GetLowerBound(12); found {
+    // For a list with {10, 15, 20}, this will find 15
+    fmt.Println("Found lower bound:", node.val)
 }
 ```
 
